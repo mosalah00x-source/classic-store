@@ -1,0 +1,70 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'docs/api/**'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'docs/api/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api-lint:
+    name: API Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint OpenAPI spec
+        run: |
+          npx @redocly/cli lint docs/api/openapi.yaml --config docs/api/.redocly.yaml
+
+  backend-test:
+    name: Backend Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run Maven verify
+        run: |
+          cd backend
+          ./mvnw -B verify
+
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: OWASP Dependency-Check
+        run: |
+          cd backend
+          ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0

@@ -37,6 +37,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
@@ -312,6 +313,40 @@ class IdentityIntegrationTests {
 
         AddressResponse defaultAddress = addresses.stream().filter(AddressResponse::isDefault).findFirst().orElseThrow();
         assertThat(defaultAddress.getId()).isEqualTo(a2Id);
+    }
+
+    @Test
+    void test21_customerOnAdminEndpoint_returns403ForbiddenWithErrorContract() {
+        // Customer login
+        RegisterRequest cReq = new RegisterRequest("Cust AdminAttempt", "custadmin@example.com", "+201011115555", "Password123!");
+        restTemplate.postForEntity("/api/v1/auth/register", cReq, UserResponse.class);
+        AuthResponse auth = restTemplate.postForEntity("/api/v1/auth/login", new LoginRequest("custadmin@example.com", "Password123!"), AuthResponse.class).getBody();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(auth.getAccessToken());
+
+        ResponseEntity<ApiErrorResponse> resp = restTemplate.exchange("/api/v1/admin/users", HttpMethod.GET, new HttpEntity<>(headers), ApiErrorResponse.class);
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(resp.getBody()).isNotNull();
+        assertThat(resp.getBody().code()).isEqualTo("FORBIDDEN");
+    }
+
+    @Autowired
+    private org.springframework.core.env.Environment environment;
+
+    @Test
+    void test22_testProfile_usesValidateDdlAuto() {
+        String ddlAuto = environment.getProperty("spring.jpa.hibernate.ddl-auto");
+        assertThat(ddlAuto).isEqualTo("validate");
+    }
+
+    @Test
+    void test23_missingJwtSecretProperty_causesApplicationContextFailure() {
+        org.springframework.boot.builder.SpringApplicationBuilder app = new org.springframework.boot.builder.SpringApplicationBuilder(com.classicstore.ClassicStoreApplication.class)
+                .profiles("test")
+                .properties("jwt.secret=");
+        assertThatThrownBy(app::run)
+                .isInstanceOf(Exception.class);
     }
 
     private String createExpiredToken(UUID userId, String type) {

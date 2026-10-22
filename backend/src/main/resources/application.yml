@@ -39,9 +39,13 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: store
+        hbm2ddl:
+          auto: none
   flyway:
-    # TODO: B-00R Re-enable Flyway once source SQL migrations are added
     enabled: false
     schemas: store
     default-schema: store

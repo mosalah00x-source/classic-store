@@ -1,6 +1,7 @@
 package com.classicstore.common.config;
 
 import com.classicstore.common.filter.CorrelationIdFilter;
+import com.classicstore.identity.security.CustomAccessDeniedHandler;
 import com.classicstore.identity.security.CustomAuthenticationEntryPoint;
 import com.classicstore.identity.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.ObjectProvider;
@@ -24,13 +25,16 @@ public class SecurityConfig {
     private final CorrelationIdFilter correlationIdFilter;
     private final ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider;
     private final ObjectProvider<CustomAuthenticationEntryPoint> customAuthenticationEntryPointProvider;
+    private final ObjectProvider<CustomAccessDeniedHandler> customAccessDeniedHandlerProvider;
 
     public SecurityConfig(CorrelationIdFilter correlationIdFilter,
                           ObjectProvider<JwtAuthenticationFilter> jwtAuthenticationFilterProvider,
-                          ObjectProvider<CustomAuthenticationEntryPoint> customAuthenticationEntryPointProvider) {
+                          ObjectProvider<CustomAuthenticationEntryPoint> customAuthenticationEntryPointProvider,
+                          ObjectProvider<CustomAccessDeniedHandler> customAccessDeniedHandlerProvider) {
         this.correlationIdFilter = correlationIdFilter;
         this.jwtAuthenticationFilterProvider = jwtAuthenticationFilterProvider;
         this.customAuthenticationEntryPointProvider = customAuthenticationEntryPointProvider;
+        this.customAccessDeniedHandlerProvider = customAccessDeniedHandlerProvider;
     }
 
     @Bean
@@ -45,6 +49,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/api/v1/test/**", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/me/**").authenticated()
                         .anyRequest().permitAll()
                 )
@@ -56,9 +61,15 @@ public class SecurityConfig {
         }
 
         CustomAuthenticationEntryPoint entryPoint = customAuthenticationEntryPointProvider.getIfAvailable();
-        if (entryPoint != null) {
-            http.exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint));
-        }
+        CustomAccessDeniedHandler accessDeniedHandler = customAccessDeniedHandlerProvider.getIfAvailable();
+        http.exceptionHandling(ex -> {
+            if (entryPoint != null) {
+                ex.authenticationEntryPoint(entryPoint);
+            }
+            if (accessDeniedHandler != null) {
+                ex.accessDeniedHandler(accessDeniedHandler);
+            }
+        });
 
         return http.build();
     }

@@ -54,6 +54,7 @@ class IdentityIntegrationTests {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.flyway.schemas", () -> "store");
         registry.add("spring.flyway.default-schema", () -> "store");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
         registry.add("jwt.secret", () -> "super-secret-jwt-key-for-testing-must-be-at-least-32-bytes-long");
     }
 

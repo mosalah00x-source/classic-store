@@ -109,6 +109,14 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>13.0.0</version>
+                <configuration>
+                    <failBuildOnCVSS>9.0</failBuildOnCVSS>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

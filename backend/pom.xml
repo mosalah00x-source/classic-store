@@ -106,6 +106,7 @@
                     </environmentVariables>
                     <systemPropertyVariables>
                         <api.version>1.44</api.version>
+                        <spring.profiles.active>test</spring.profiles.active>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

@@ -5,10 +5,12 @@ on:
     paths:
       - 'backend/**'
       - 'docs/api/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'backend/**'
       - 'docs/api/**'
+      - '.github/workflows/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -74,12 +76,16 @@ jobs:
         run: |
           if [ -d "backend" ]; then
             cd backend
+
             if [ -n "$NVD_API_KEY" ]; then
               ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0 -DnvdApiKey="$NVD_API_KEY"
             else
               echo "::warning::NVD_API_KEY secret is not set. Running dependency scan with failOnError=false."
               ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0 -DfailOnError=false
             fi
+
+            ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0 -DfailOnError=false
+
           else
             echo "No /backend directory found; skipping dependency check."
           fi

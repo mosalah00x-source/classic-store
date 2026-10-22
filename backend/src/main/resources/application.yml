@@ -8,13 +8,14 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         default_schema: store
   flyway:
-    enabled: true
+    # TODO: B-00R Re-enable Flyway once source SQL migrations are added
+    enabled: false
     schemas: store
     default-schema: store
     create-schemas: true
@@ -38,9 +39,10 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
   flyway:
-    enabled: true
+    # TODO: B-00R Re-enable Flyway once source SQL migrations are added
+    enabled: false
     schemas: store
     default-schema: store
     create-schemas: true

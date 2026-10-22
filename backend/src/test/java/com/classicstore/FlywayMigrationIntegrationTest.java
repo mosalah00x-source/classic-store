@@ -31,8 +31,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 
-@Disabled("Disabled until real Flyway migrations are added - TODO: B-00R")
-
 class FlywayMigrationIntegrationTest {
 
     @Container

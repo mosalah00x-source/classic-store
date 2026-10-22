@@ -180,7 +180,7 @@ paths:
                 phone:
                   type: string
                   example: "+201012345678"
-                  x-open-question: "OPEN-01: Egyptian phone number formatting and validation rules (+20 format)"
+                  x-open-question: "NEW-Q-01: Egyptian phone number formatting and validation rules (+20 format)"
       responses:
         '201':
           description: Registration successful
@@ -243,6 +243,7 @@ paths:
       tags:
         - Auth
       summary: Refresh access token
+      description: Obtains a new access token using a valid, unexpired refresh token.
       operationId: refreshToken
       security: []
       requestBody:
@@ -263,7 +264,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                $ref: '#/components/schemas/RefreshResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -275,21 +276,16 @@ paths:
     post:
       tags:
         - Auth
-      summary: Logout user and invalidate access/refresh token
+      summary: Logout user (client-side signal)
+      description: >
+        Client-side logout signal. Server is stateless; tokens cannot be server-side
+        revoked and existing refresh tokens remain valid until expiration.
       operationId: logout
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Logout successful
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Successfully logged out"
+        '204':
+          description: Logout successful (client-side signal only)
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -343,6 +339,35 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /me/addresses/{addressId}:
+    get:
+      tags:
+        - Shipping
+      summary: Get customer saved address by ID
+      operationId: getCustomerAddressById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Saved address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -1324,7 +1349,24 @@ components:
           example: "Bearer"
         expiresIn:
           type: integer
-          example: 3600
+          example: 900
+
+    RefreshResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+        tokenType:
+          type: string
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          example: 900
 
     Address:
       type: object

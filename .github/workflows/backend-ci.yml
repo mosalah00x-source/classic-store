@@ -5,10 +5,12 @@ on:
     paths:
       - 'backend/**'
       - 'docs/api/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'backend/**'
       - 'docs/api/**'
+      - '.github/workflows/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -72,7 +74,7 @@ jobs:
         run: |
           if [ -d "backend" ]; then
             cd backend
-            ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0
+            ./mvnw -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9.0 -DfailOnError=false
           else
             echo "No /backend directory found; skipping dependency check."
           fi

@@ -1,0 +1,1709 @@
+openapi: 3.1.0
+info:
+  title: Classic Store API
+  version: 1.0.0
+  description: >
+    OpenAPI 3.1 specification for Classic Store - Egyptian B2C e-commerce platform API v1.
+    Arabic-first with English support. All monetary values are in EGP currency.
+
+    Security Concept:
+    Authentication uses JWT access tokens via bearerAuth scheme (`Authorization: Bearer <token>`).
+    Guest cart and tracking operations utilize opaque tokens (`guestCartToken`).
+    Guest access MUST use opaque tokens and MUST NEVER rely on order numbers alone.
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.example.com/api/v1
+    description: Production API Server (Base path /api/v1)
+
+tags:
+  - name: Auth
+    description: Authentication and identity management operations.
+  - name: Catalog
+    description: Product catalog and browsing endpoints.
+  - name: Cart
+    description: Cart management for guest and registered users.
+  - name: Checkout
+    description: Checkout calculation and order placement.
+  - name: Orders
+    description: Order tracking, retrieval, and cancellation.
+  - name: Payments
+    description: Payment processing and webhooks.
+  - name: Returns
+    description: Customer return requests and tracking.
+  - name: Admin
+    description: Administrative product management, order allocations, and refund processing.
+  - name: Inventory
+    description: Warehouse and stock inventory management.
+  - name: Shipping
+    description: Address management and delivery fulfillment updates.
+
+paths:
+  /products:
+    get:
+      tags:
+        - Catalog
+      summary: List products with filtering and pagination
+      operationId: listProducts
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: Search keyword query
+          required: false
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          description: Filter by category ID
+          required: false
+          schema:
+            type: string
+        - name: brandId
+          in: query
+          description: Filter by brand ID
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          description: Minimum price in EGP
+          required: false
+          schema:
+            $ref: '#/components/schemas/Money'
+        - name: maxPrice
+          in: query
+          description: Maximum price in EGP
+          required: false
+          schema:
+            $ref: '#/components/schemas/Money'
+        - name: sort
+          in: query
+          description: Sort field and direction (e.g., price,asc or createdAt,desc)
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: 0-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+      responses:
+        '200':
+          description: Paginated list of products
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{slug}:
+    get:
+      tags:
+        - Catalog
+      summary: Get product details by slug
+      operationId: getProductBySlug
+      security: []
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          description: Product URL slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detailed product information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new customer
+      operationId: registerCustomer
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - phone
+              properties:
+                name:
+                  type: string
+                  example: "Ahmed Hassan"
+                email:
+                  type: string
+                  format: email
+                  example: "ahmed@example.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecureP@ss123"
+                phone:
+                  type: string
+                  example: "+201012345678"
+                  x-open-question: "OPEN-01: Egyptian phone number formatting and validation rules (+20 format)"
+      responses:
+        '201':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate user and obtain tokens
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "ahmed@example.com"
+                password:
+                  type: string
+                  format: password
+                  example: "SecureP@ss123"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: "dGhlcmVmcmVzaHRva2Vu..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user and invalidate access/refresh token
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully logged out"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /me/addresses:
+    get:
+      tags:
+        - Shipping
+      summary: List customer saved addresses
+      operationId: getCustomerAddresses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of saved addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Shipping
+      summary: Add a new address to customer profile
+      operationId: addCustomerAddress
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+      responses:
+        '201':
+          description: Address created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /carts:
+    post:
+      tags:
+        - Cart
+      summary: Create a cart (guest or authenticated customer)
+      operationId: createCart
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Cart created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /carts/{cartId}/items/{sku}:
+    put:
+      tags:
+        - Cart
+      summary: Add or update item quantity in cart
+      operationId: updateCartItem
+      security:
+        - bearerAuth: []
+        - guestCartToken: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 2
+      responses:
+        '200':
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Cart
+      summary: Remove item from cart
+      operationId: removeCartItem
+      security:
+        - bearerAuth: []
+        - guestCartToken: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed, updated cart returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /checkout/quote:
+    post:
+      tags:
+        - Checkout
+      summary: Calculate checkout quote and order total
+      description: >
+        Calculates subtotal, shipping fees, discounts, and grand total.
+        Client must NOT send final price, order status, or warehouseId in checkout;
+        they are server-computed and ignored or rejected if sent.
+      operationId: calculateCheckoutQuote
+      security:
+        - {}
+        - bearerAuth: []
+        - guestCartToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cartId
+                - shippingAddress
+              properties:
+                cartId:
+                  type: string
+                  format: uuid
+                shippingAddress:
+                  $ref: '#/components/schemas/AddressInput'
+                couponCode:
+                  type:
+                    - string
+                    - "null"
+                  example: "SUMMER10"
+      responses:
+        '200':
+          description: Checkout quote summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutQuote'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /checkout/orders:
+    post:
+      tags:
+        - Checkout
+      summary: Create order from checkout
+      description: >
+        Places an order from a cart. Idempotency-Key header is required.
+        Client must NOT send final price, order status, or warehouseId in checkout;
+        they are server-computed and ignored/rejected if sent.
+      operationId: createCheckoutOrder
+      security:
+        - {}
+        - bearerAuth: []
+        - guestCartToken: []
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cartId
+                - customer
+                - shippingAddress
+                - paymentMethod
+              properties:
+                cartId:
+                  type: string
+                  format: uuid
+                  example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                customer:
+                  type: object
+                  required:
+                    - name
+                    - phone
+                    - email
+                  properties:
+                    name:
+                      type: string
+                      example: "Ahmed Hassan"
+                    phone:
+                      type: string
+                      example: "+201012345678"
+                      x-open-question: "OPEN-01: Egyptian phone format verification"
+                    email:
+                      type: string
+                      format: email
+                      example: "ahmed@example.com"
+                shippingAddress:
+                  $ref: '#/components/schemas/AddressInput'
+                paymentMethod:
+                  type: string
+                  enum: [COD, CARD, FAWRY]
+                  example: "COD"
+                  x-open-question: "OPEN-03: Supported payment gateway options"
+                couponCode:
+                  type:
+                    - string
+                    - "null"
+                  example: null
+            example:
+              cartId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+              customer:
+                name: "Ahmed Hassan"
+                phone: "+201012345678"
+                email: "ahmed@example.com"
+              shippingAddress:
+                countryCode: "EG"
+                governorateId: 1
+                cityId: 1
+                line1: "123 El-Tahrir Street"
+                latitude: 30.04
+                longitude: 31.24
+              paymentMethod: "COD"
+              couponCode: null
+      responses:
+        '201':
+          description: Order placed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - orderId
+                  - orderNumber
+                  - status
+                  - paymentStatus
+                  - currency
+                  - grandTotal
+                  - reservationExpiresAt
+                properties:
+                  orderId:
+                    type: string
+                    format: uuid
+                    example: "c73a8f6d-2c81-4b13-9828-87a554a9f3b8"
+                  orderNumber:
+                    type: integer
+                    example: 12345
+                  status:
+                    type: string
+                    example: "PENDING"
+                  paymentStatus:
+                    type: string
+                    example: "PENDING"
+                  currency:
+                    type: string
+                    example: "EGP"
+                  grandTotal:
+                    $ref: '#/components/schemas/Money'
+                  reservationExpiresAt:
+                    type: string
+                    format: date-time
+                    example: "2026-03-30T15:30:00Z"
+              example:
+                orderId: "c73a8f6d-2c81-4b13-9828-87a554a9f3b8"
+                orderNumber: 12345
+                status: "PENDING"
+                paymentStatus: "PENDING"
+                currency: "EGP"
+                grandTotal: "950.00"
+                reservationExpiresAt: "2026-03-30T15:30:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Conflict, e.g. stock reservation failed or warehouse missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "NO_ELIGIBLE_WAREHOUSE"
+                messageAr: "لا يوجد مخزن متاح يغطي الطلب"
+                messageEn: "No warehouse can fulfil the entire order"
+                traceId: "req-9876543210"
+                details: {}
+        '422':
+          description: Unprocessable entity error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "NO_ELIGIBLE_WAREHOUSE"
+                messageAr: "لا يوجد مخزن متاح يغطي الطلب"
+                messageEn: "No warehouse can fulfil the entire order"
+                traceId: "req-9876543210"
+                details: {}
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - Orders
+      summary: Get order details by order ID
+      operationId: getOrderById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed order record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{orderId}/cancel:
+    post:
+      tags:
+        - Orders
+      summary: Cancel an order
+      operationId: cancelOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  example: "Customer requested cancellation before dispatch"
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /guest/orders/{token}:
+    get:
+      tags:
+        - Orders
+      summary: Get guest order details using guest token
+      description: >
+        Retrieves order details for guest customers using an opaque guest token.
+        Guest order tracking by orderNumber alone MUST NOT work; token is strictly required.
+      operationId: getGuestOrder
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Opaque guest order token
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /payments/{paymentId}/webhooks/{provider}:
+    post:
+      tags:
+        - Payments
+      summary: Payment provider webhook callback
+      description: >
+        Processes asynchronous payment notifications from gateway providers (e.g., Paymob, Fawry).
+        Requires provider signature validation. Does not use bearer authentication.
+      operationId: handlePaymentWebhook
+      security: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "paymob"
+            x-open-question: "OPEN-03: Supported payment gateways and provider names"
+        - name: X-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Provider webhook signature
+          x-open-question: "OPEN-03: Webhook HMAC signature format"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook received and processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/products:
+    get:
+      tags:
+        - Admin
+      summary: List all products for administration
+      operationId: adminListProducts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated product list for admin
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Admin
+      summary: Create a new product
+      operationId: adminCreateProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/inventory:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory levels across warehouses
+      operationId: adminGetInventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sku
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: warehouseId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Inventory levels listing
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pagination'
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InventoryLevel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/inventory/adjustments:
+    post:
+      tags:
+        - Inventory
+      summary: Record inventory adjustment
+      description: Reason is strictly required for stock adjustments.
+      operationId: adminAdjustInventory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sku
+                - warehouseId
+                - adjustmentQuantity
+                - reason
+              properties:
+                sku:
+                  type: string
+                  example: "SKU-1001-BLK"
+                warehouseId:
+                  type: string
+                  example: "WH-CAIRO-01"
+                adjustmentQuantity:
+                  type: integer
+                  description: Positive for additions, negative for deductions
+                  example: -5
+                reason:
+                  type: string
+                  example: "Damaged inventory audit deduction"
+      responses:
+        '200':
+          description: Adjustment applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryLevel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/orders/{orderId}/allocate:
+    post:
+      tags:
+        - Admin
+      summary: Allocate warehouse for order fulfillment
+      operationId: adminAllocateOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - warehouseId
+              properties:
+                warehouseId:
+                  type: string
+                  example: "WH-CAIRO-01"
+      responses:
+        '200':
+          description: Warehouse allocated to order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/fulfillments/{fulfillmentId}/status:
+    patch:
+      tags:
+        - Shipping
+      summary: Update fulfillment status
+      operationId: adminUpdateFulfillmentStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fulfillmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PICKING, PACKED, SHIPPED, DELIVERED, RETURNED]
+                  example: "SHIPPED"
+                trackingNumber:
+                  type: string
+                  example: "BOSTA-1234567"
+                  x-open-question: "OPEN-05: Courier integration tracking number schema"
+      responses:
+        '200':
+          description: Fulfillment status updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fulfillmentId:
+                    type: string
+                  status:
+                    type: string
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /returns:
+    post:
+      tags:
+        - Returns
+      summary: Create a return request
+      operationId: createReturn
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - items
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - sku
+                      - quantity
+                      - reason
+                    properties:
+                      sku:
+                        type: string
+                      quantity:
+                        type: integer
+                        minimum: 1
+                      reason:
+                        type: string
+                        example: "Defective item"
+                  x-open-question: "OPEN-04: Egyptian consumer protection return policy window duration"
+      responses:
+        '201':
+          description: Return request submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/refunds:
+    post:
+      tags:
+        - Admin
+      summary: Process a refund
+      operationId: adminProcessRefund
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - amount
+                - reason
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                returnId:
+                  type: string
+                  format: uuid
+                amount:
+                  $ref: '#/components/schemas/Money'
+                reason:
+                  type: string
+                  example: "Item returned per customer protection guidelines"
+      responses:
+        '201':
+          description: Refund processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refundId:
+                    type: string
+                    format: uuid
+                  orderId:
+                    type: string
+                    format: uuid
+                  amount:
+                    $ref: '#/components/schemas/Money'
+                  status:
+                    type: string
+                    example: "PROCESSED"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Access Token. Send in Authorization header as `Bearer <token>`.
+    guestCartToken:
+      type: apiKey
+      in: header
+      name: X-Guest-Cart-Token
+      description: Opaque token used to identify and access guest carts and guest order tracking. Guest access uses opaque tokens and MUST NEVER rely on order numbers alone.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Required UUID header for preventing duplicate processing of write operations.
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - messageAr
+        - messageEn
+        - traceId
+        - details
+      properties:
+        code:
+          type: string
+          example: "INVALID_INPUT"
+        messageAr:
+          type: string
+          example: "المدخلات غير صالحة"
+        messageEn:
+          type: string
+          example: "The input provided is invalid"
+        traceId:
+          type: string
+          example: "trace-abc-12345"
+        details:
+          type: object
+          additionalProperties: true
+
+    Money:
+      type: string
+      pattern: '^\d+\.\d{2}$'
+      example: "950.00"
+      description: Monetary value represented as a string with exactly two decimal places (e.g. "950.00"). Currency is always EGP.
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          example: 0
+          description: 0-based page index.
+        size:
+          type: integer
+          minimum: 1
+          example: 20
+          description: Number of items per page.
+        totalElements:
+          type: integer
+          minimum: 0
+          example: 100
+          description: Total number of matching elements across all pages.
+        totalPages:
+          type: integer
+          minimum: 0
+          example: 5
+          description: Total number of pages available.
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - tokenType
+        - expiresIn
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+        refreshToken:
+          type: string
+          example: "dGhlcmVmcmVzaHRva2Vu..."
+        tokenType:
+          type: string
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          example: 3600
+
+    Address:
+      type: object
+      required:
+        - id
+        - countryCode
+        - governorateId
+        - cityId
+        - line1
+      properties:
+        id:
+          type: string
+          format: uuid
+        countryCode:
+          type: string
+          example: "EG"
+        governorateId:
+          type: integer
+          example: 1
+          x-open-question: "OPEN-02: Governorate mapping"
+        cityId:
+          type: integer
+          example: 1
+          x-open-question: "OPEN-02: City mapping"
+        line1:
+          type: string
+          example: "123 El-Tahrir Street"
+        latitude:
+          type:
+            - number
+            - "null"
+          format: double
+          example: 30.04
+        longitude:
+          type:
+            - number
+            - "null"
+          format: double
+          example: 31.24
+
+    AddressInput:
+      type: object
+      required:
+        - countryCode
+        - governorateId
+        - cityId
+        - line1
+      properties:
+        countryCode:
+          type: string
+          example: "EG"
+        governorateId:
+          type: integer
+          example: 1
+          x-open-question: "OPEN-02: Governorate mapping"
+        cityId:
+          type: integer
+          example: 1
+          x-open-question: "OPEN-02: City mapping"
+        line1:
+          type: string
+          example: "123 El-Tahrir Street"
+        latitude:
+          type:
+            - number
+            - "null"
+          format: double
+          example: 30.04
+        longitude:
+          type:
+            - number
+            - "null"
+          format: double
+          example: 31.24
+
+    ProductSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - titleAr
+        - titleEn
+        - price
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          example: "classic-cotton-tshirt"
+        titleAr:
+          type: string
+          example: "قميص قطني كلاسيكي"
+        titleEn:
+          type: string
+          example: "Classic Cotton T-Shirt"
+        price:
+          $ref: '#/components/schemas/Money'
+        currency:
+          type: string
+          example: "EGP"
+        imageUrl:
+          type:
+            - string
+            - "null"
+
+    ProductDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - titleAr
+        - titleEn
+        - descriptionAr
+        - descriptionEn
+        - price
+        - currency
+        - skus
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          example: "classic-cotton-tshirt"
+        titleAr:
+          type: string
+          example: "قميص قطني كلاسيكي"
+        titleEn:
+          type: string
+          example: "Classic Cotton T-Shirt"
+        descriptionAr:
+          type: string
+          example: "وصف المنتج باللغة العربية"
+        descriptionEn:
+          type: string
+          example: "Product description in English"
+        price:
+          $ref: '#/components/schemas/Money'
+        currency:
+          type: string
+          example: "EGP"
+        skus:
+          type: array
+          items:
+            type: object
+            required:
+              - sku
+              - inStock
+            properties:
+              sku:
+                type: string
+                example: "TSHIRT-BLK-M"
+              attributes:
+                type: object
+                additionalProperties:
+                  type: string
+              inStock:
+                type: boolean
+                example: true
+
+    ProductInput:
+      type: object
+      required:
+        - slug
+        - titleAr
+        - titleEn
+        - price
+      properties:
+        slug:
+          type: string
+        titleAr:
+          type: string
+        titleEn:
+          type: string
+        descriptionAr:
+          type: string
+        descriptionEn:
+          type: string
+        price:
+          $ref: '#/components/schemas/Money'
+
+    CartItem:
+      type: object
+      required:
+        - sku
+        - quantity
+        - unitPrice
+        - lineTotal
+      properties:
+        sku:
+          type: string
+          example: "TSHIRT-BLK-M"
+        productTitleAr:
+          type: string
+        productTitleEn:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+        lineTotal:
+          $ref: '#/components/schemas/Money'
+
+    Cart:
+      type: object
+      required:
+        - cartId
+        - items
+        - grandTotal
+        - currency
+      properties:
+        cartId:
+          type: string
+          format: uuid
+        guestToken:
+          type:
+            - string
+            - "null"
+          description: Opaque token returned for guest carts.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        grandTotal:
+          $ref: '#/components/schemas/Money'
+        currency:
+          type: string
+          example: "EGP"
+
+    CheckoutQuote:
+      type: object
+      required:
+        - subtotal
+        - shippingFee
+        - discount
+        - grandTotal
+        - currency
+      properties:
+        subtotal:
+          $ref: '#/components/schemas/Money'
+        shippingFee:
+          $ref: '#/components/schemas/Money'
+        discount:
+          $ref: '#/components/schemas/Money'
+        grandTotal:
+          $ref: '#/components/schemas/Money'
+        currency:
+          type: string
+          example: "EGP"
+
+    Order:
+      type: object
+      required:
+        - orderId
+        - orderNumber
+        - status
+        - paymentStatus
+        - currency
+        - grandTotal
+        - items
+        - createdAt
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        orderNumber:
+          type: integer
+          example: 12345
+        status:
+          type: string
+          example: "PENDING"
+        paymentStatus:
+          type: string
+          example: "PENDING"
+        currency:
+          type: string
+          example: "EGP"
+        grandTotal:
+          $ref: '#/components/schemas/Money'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        createdAt:
+          type: string
+          format: date-time
+
+    InventoryLevel:
+      type: object
+      required:
+        - sku
+        - warehouseId
+        - availableQuantity
+        - reservedQuantity
+      properties:
+        sku:
+          type: string
+          example: "TSHIRT-BLK-M"
+        warehouseId:
+          type: string
+          example: "WH-CAIRO-01"
+        availableQuantity:
+          type: integer
+          example: 50
+        reservedQuantity:
+          type: integer
+          example: 5
+
+    ReturnRequest:
+      type: object
+      required:
+        - returnId
+        - orderId
+        - status
+        - createdAt
+      properties:
+        returnId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: "REQUESTED"
+        createdAt:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad Request - Validation or malformed input error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized - Authentication token missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Forbidden - Insufficient permissions to perform operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict - Resource conflict or inventory allocation failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Unprocessable Entity - Business logic rule violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Too Many Requests - Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Internal Server Error - Unexpected server failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

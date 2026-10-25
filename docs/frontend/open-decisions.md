@@ -1,0 +1,11 @@
+# Open Decisions & Product Questions Log (`OPEN-xx` & `NEW-Q-xx`)
+
+This document aggregates all unresolved product decisions, specification questions, and technical placeholders marked across the codebase and OpenAPI specification.
+
+| Decision ID | Summary / Question Description | Source File & Location | Impact on Frontend | Status / Recommendation |
+| :--- | :--- | :--- | :--- | :--- |
+| **OPEN-01** / **NEW-Q-01** | **Egyptian Phone Formatting & Validation (+20 format)** | `backend/src/main/java/com/classicstore/identity/service/AuthService.java:177`<br>`docs/api/openapi.yaml:183, 576` | Controls regex and formatting validation for phone inputs on registration, login, address creation, and checkout. Currently accepts `^\+?[0-9]{8,24}$`. | Pending product decision on strict Egyptian operator prefix rules (`+2010`, `+2011`, `+2012`, `+2015`). Frontend should use standard input mask allowing international/local formats. |
+| **OPEN-02** | **Governorate & City Mapping Reference Data** | `docs/api/openapi.yaml:1389, 1393, 1424, 1428` | Address and shipping rate calculations depend on numeric `governorateId` and `cityId`. | Missing reference lookup endpoints. Frontend requires static/mock governorates list until reference API is created. |
+| **OPEN-03** | **Supported Payment Gateways & Webhook HMAC Signature Schema** | `docs/api/openapi.yaml:587, 816, 823` | Payment UI selection (Credit Card, Paymob, Fawry, Wallet, COD) and webhook verification headers (`X-Signature`). | Frontend payment step should support Cash on Delivery (COD) and Card redirection mock flows until gateway provider is finalized. |
+| **OPEN-04** | **Egyptian Consumer Protection Return Policy Window Duration** | `docs/api/openapi.yaml:1168` | Return request eligibility rules in user order history (e.g., 14 days standard return vs 30 days for defective items per Egyptian Consumer Protection Law). | Frontend return button visibility check will use 14 days from delivery timestamp as default rule. |
+| **OPEN-05** | **Courier Integration & Tracking Number Schema** | `docs/api/openapi.yaml:1103` | Fulfillment tracking link generation on guest tracking and customer order details pages. | Frontend order tracking will render external tracking URL if present or tracking number string directly. |

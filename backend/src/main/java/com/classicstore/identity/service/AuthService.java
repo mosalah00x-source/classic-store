@@ -61,7 +61,7 @@ public class AuthService {
             validatePhone(phone);
         }
 
-        if (email != null && userRepository.existsByEmail(email)) {
+        if (email != null && userRepository.existsByEmailIgnoreCase(email)) {
             throw new BusinessException(
                     "EMAIL_ALREADY_REGISTERED",
                     "البريد الإلكتروني مسجل بالفعل",
@@ -129,7 +129,7 @@ public class AuthService {
 
         identifier = identifier.trim();
 
-        Optional<UserEntity> userOpt = userRepository.findByEmail(identifier);
+        Optional<UserEntity> userOpt = userRepository.findByEmailIgnoreCase(identifier);
         if (userOpt.isEmpty()) {
             userOpt = userRepository.findByPhone(identifier);
         }

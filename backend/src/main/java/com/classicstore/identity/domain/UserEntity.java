@@ -24,8 +24,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @org.hibernate.annotations.JdbcType(CitextJdbcType.class)
-    @Column(name = "email", columnDefinition = "citext", unique = true)
+    @Column(name = "email", unique = true)
     private String email;
 
     @Column(name = "phone", length = 24, unique = true)

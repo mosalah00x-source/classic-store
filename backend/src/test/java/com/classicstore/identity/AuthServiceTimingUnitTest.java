@@ -37,7 +37,7 @@ class AuthServiceTimingUnitTest {
 
     @Test
     void loginWithUnknownUser_executesPasswordEncoderMatchesAgainstDummyHash() {
-        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
 
         LoginRequest request = new LoginRequest("unknown@example.com", "Password123!");
 

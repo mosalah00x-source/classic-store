@@ -24,7 +24,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "email", unique = true)
+    @Column(name = "email", columnDefinition = "citext", unique = true)
     private String email;
 
     @Column(name = "phone", length = 24, unique = true)

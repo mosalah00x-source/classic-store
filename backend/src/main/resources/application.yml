@@ -14,8 +14,7 @@ spring:
       hibernate:
         default_schema: store
   flyway:
-    # TODO: B-00R Re-enable Flyway once source SQL migrations are added
-    enabled: false
+    enabled: true
     schemas: store
     default-schema: store
     create-schemas: true

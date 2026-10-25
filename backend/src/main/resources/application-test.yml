@@ -7,8 +7,6 @@ spring:
     properties:
       hibernate:
         default_schema: store
-        hbm2ddl:
-          auto: none
   flyway:
     enabled: false
     schemas: store

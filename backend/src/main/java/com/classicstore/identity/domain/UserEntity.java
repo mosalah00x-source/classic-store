@@ -2,6 +2,8 @@ package com.classicstore.identity.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -24,7 +26,8 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "email", unique = true)
+    @Column(name = "email", columnDefinition = "citext", unique = true)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private String email;
 
     @Column(name = "phone", length = 24, unique = true)

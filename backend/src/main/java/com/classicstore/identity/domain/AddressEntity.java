@@ -29,6 +29,7 @@ public class AddressEntity {
     @Column(name = "phone", length = 24, nullable = false)
     private String phone;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.CHAR)
     @Column(name = "country_code", length = 2, nullable = false)
     private String countryCode = "EG";
 

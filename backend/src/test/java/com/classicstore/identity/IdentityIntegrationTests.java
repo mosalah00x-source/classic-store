@@ -39,7 +39,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.springframework.test.context.ActiveProfiles;
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 @Testcontainers
 class IdentityIntegrationTests {
 
@@ -197,7 +200,7 @@ class IdentityIntegrationTests {
         assertThat(tamperedResp.getBody().code()).isEqualTo("INVALID_TOKEN");
 
         // 10. Refresh with expired refresh token returns 401 INVALID_TOKEN
-        UserEntity user = userRepository.findByEmailIgnoreCase("refresh@example.com").orElseThrow();
+        UserEntity user = userRepository.findByEmail("refresh@example.com").orElseThrow();
         String expiredRefreshToken = createExpiredToken(user.getId(), JwtService.TYPE_REFRESH);
         RefreshTokenRequest expiredReq = new RefreshTokenRequest(expiredRefreshToken);
         ResponseEntity<ApiErrorResponse> expiredResp = restTemplate.postForEntity("/api/v1/auth/refresh", expiredReq, ApiErrorResponse.class);
@@ -225,7 +228,7 @@ class IdentityIntegrationTests {
         restTemplate.postForEntity("/api/v1/auth/register", r1, UserResponse.class);
         AuthResponse loginAuth = restTemplate.postForEntity("/api/v1/auth/login", new LoginRequest("bearer@example.com", "Password123!"), AuthResponse.class).getBody();
 
-        UserEntity user = userRepository.findByEmailIgnoreCase("bearer@example.com").orElseThrow();
+        UserEntity user = userRepository.findByEmail("bearer@example.com").orElseThrow();
 
         // 14. Refresh token sent as Authorization: Bearer returns 401 INVALID_TOKEN
         HttpHeaders refreshBearerHeaders = new HttpHeaders();
@@ -325,10 +328,26 @@ class IdentityIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(auth.getAccessToken());
 
-        ResponseEntity<ApiErrorResponse> resp = restTemplate.exchange("/api/v1/admin/users", HttpMethod.GET, new HttpEntity<>(headers), ApiErrorResponse.class);
+        // CUSTOMER token gets 403
+        ResponseEntity<ApiErrorResponse> resp = restTemplate.exchange("/api/v1/test/admin/ping", HttpMethod.GET, new HttpEntity<>(headers), ApiErrorResponse.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(resp.getBody()).isNotNull();
         assertThat(resp.getBody().code()).isEqualTo("FORBIDDEN");
+        assertThat(resp.getBody().messageAr()).isNotBlank();
+        assertThat(resp.getBody().messageEn()).isNotBlank();
+        assertThat(resp.getBody().traceId()).isNotNull();
+        assertThat(resp.getBody().details()).isNotNull();
+
+        // ADMIN token gets 200
+        UUID adminUserId = UUID.randomUUID();
+        String adminToken = jwtService.generateAccessToken(adminUserId, UserRole.ADMIN.name());
+        HttpHeaders adminHeaders = new HttpHeaders();
+        adminHeaders.setBearerAuth(adminToken);
+
+        ResponseEntity<Map<String, Object>> adminResp = restTemplate.exchange(
+                "/api/v1/test/admin/ping", HttpMethod.GET, new HttpEntity<>(adminHeaders), new ParameterizedTypeReference<>() {});
+        assertThat(adminResp.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(adminResp.getBody()).containsEntry("ok", true);
     }
 
     @Autowired
@@ -347,6 +366,25 @@ class IdentityIntegrationTests {
                 .properties("jwt.secret=");
         assertThatThrownBy(app::run)
                 .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    void test24_citextEmailLookupIsCaseInsensitive() {
+        RegisterRequest registerReq = new RegisterRequest("Citext User", "CaseSensitiveEmail@Example.COM", "+201099887766", "Password123!");
+        ResponseEntity<UserResponse> regResp = restTemplate.postForEntity("/api/v1/auth/register", registerReq, UserResponse.class);
+        assertThat(regResp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        Optional<UserEntity> lowerOpt = userRepository.findByEmail("casesensitiveemail@example.com");
+        assertThat(lowerOpt).isPresent();
+        assertThat(lowerOpt.get().getId()).isEqualTo(regResp.getBody().getId());
+
+        Optional<UserEntity> upperOpt = userRepository.findByEmail("CASESENSITIVEEMAIL@EXAMPLE.COM");
+        assertThat(upperOpt).isPresent();
+        assertThat(upperOpt.get().getId()).isEqualTo(regResp.getBody().getId());
+
+        Optional<UserEntity> mixedOpt = userRepository.findByEmail("CaseSensitiveEmail@Example.COM");
+        assertThat(mixedOpt).isPresent();
+        assertThat(mixedOpt.get().getId()).isEqualTo(regResp.getBody().getId());
     }
 
     private String createExpiredToken(UUID userId, String type) {

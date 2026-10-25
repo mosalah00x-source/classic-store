@@ -16,6 +16,7 @@ Every planned task for the frontend roadmap is evaluated against the audited bac
 | **T05** | Layout shell (Header, Footer, Nav) | **MOCK** | Shell structure can be built, but header mega menu category navigation requires mocking `GET /categories` (GAP-03). |
 | **T06** | API layer generated from OpenAPI | **REAL** | Generate TypeScript client/types directly from `docs/api/openapi.yaml` using `@hey-api/openapi-ts` or `openapi-typescript`. |
 | **T07** | Mock Service Worker (MSW) server | **REAL** | Essential infrastructure to simulate all SPEC-ONLY endpoints (Catalog, Cart, Checkout, Orders, Payments, Admin) seamlessly. |
+| **T07b** | Local full-stack run environment | **REAL** | Provide a `docker-compose.yml` orchestrating PostgreSQL and the Spring Boot backend service with `SPRING_FLYWAY_ENABLED=true` injected via environment variable (no backend code or migration file modifications). Enables local full-stack development and testing against the real database schema. |
 | **T08** | Auth flow (Register, Login, Refresh) | **REAL** | **Backend Auth is IMPLEMENTED**. Direct integration with `POST /auth/register`, `/login`, `/refresh`, `/logout`. |
 | **T09** | UI states kit | **REAL** | Reusable components for Loading (skeleton), Error state, Empty state, and Success notifications across LTR/RTL. |
 | **T10** | Quality gates & Playwright setup | **REAL** | ESLint, Prettier, TypeScript checks, and Playwright E2E framework integration. |
@@ -25,10 +26,10 @@ Every planned task for the frontend roadmap is evaluated against the audited bac
 | **T14** | SEO & Metadata | **REAL** | Next.js dynamic metadata, Open Graph tags, canonical URLs, and structured JSON-LD schemas. |
 | **T15** | Cart drawer & Cart page | **MOCK** | Cart API (`POST /carts`, `PUT /carts/...`, `DELETE /carts/...`) is SPEC-ONLY on backend; requires MSW mock handlers. |
 | **T16** | Checkout page & Order placement | **MOCK** | `POST /checkout/quote` and `POST /checkout/orders` are SPEC-ONLY; governorate/city reference data missing (GAP-04). |
-| **T17** | Payment handling | **MOCK** | Payment redirect and Cash on Delivery logic rely on SPEC-ONLY payment endpoints. |
-| **T18** | Order Result & Guest Tracking | **MOCK** | `GET /guest/orders/{token}` is SPEC-ONLY on backend; requires MSW mock handlers. |
-| **T19** | Account & Address Management | **PARTIAL / REAL** | Address `GET`, `POST`, `GET /{id}` are **IMPLEMENTED** on backend. Address `PUT`, `DELETE`, `PATCH default` must be mocked until GAP-02 is fixed on backend. |
-| **T20** | Customer Order History | **MOCK** | `GET /orders/{id}` and `POST /orders/{id}/cancel` are SPEC-ONLY on backend. |
+| **T17** | Payment handling | **BLOCKED** | **BLOCKED by GAP-11**. No payment creation endpoint (`POST /orders/{orderId}/payments`) exists in `openapi.yaml` or backend to initiate online payment sessions (Card, Fawry, Valu). |
+| **T18** | Order Result & Guest Tracking | **MOCK** | `GET /guest/orders/{token}` is SPEC-ONLY on backend; requires MSW mock handlers. Note security flag GAP-17 for URL token parameter. |
+| **T19** | Account & Address Management | **PARTIAL / REAL** | Address `GET`, `POST`, `GET /{id}` are **IMPLEMENTED** on backend. Address `PUT`, `DELETE`, `PATCH default` are missing in spec & backend (GAP-02) and must be mocked. |
+| **T20** | Customer Order History | **BLOCKED** | **BLOCKED by GAP-13**. No customer order list endpoint (`GET /orders` or `GET /me/orders`) exists in `openapi.yaml` or backend to display order history. |
 | **T21** | Returns Management | **MOCK** | `POST /returns` is SPEC-ONLY on backend. |
 | **T22** | Admin Dashboard & Products | **MOCK** | `GET/POST /admin/products` are SPEC-ONLY on backend. |
 | **T23** | Admin Inventory & Adjustments | **MOCK** | `GET /admin/inventory` and `POST /admin/inventory/adjustments` are SPEC-ONLY on backend. |
@@ -89,7 +90,7 @@ The new Next.js 15 (App Router) application will be created in `/frontend` at th
 
 ---
 
-## 3. Top Risks & F0 Blockers
+## 3. Top Risks & Blockers
 
 1. **Risk 1: Backend CORS Missing (GAP-01)**
    - *Impact*: Direct client-side browser fetch calls to the Spring Boot backend (`http://localhost:8080`) fail due to CORS.
@@ -110,3 +111,11 @@ The new Next.js 15 (App Router) application will be created in `/frontend` at th
 5. **Risk 5: Testcontainers Run Failure in Local/Sandbox Runner**
    - *Impact*: `./mvnw test` fails in Docker-in-Docker sandbox environments.
    - *Mitigation*: Rely on OpenAPI spec and MSW contract testing for frontend verification; use Spring Boot compile verification (`./mvnw compile`) for backend check.
+
+6. **Blocker 1: Task T17 Blocked by Missing Payment Creation Endpoint (GAP-11)**
+   - *Impact*: Online payment gateway flows cannot be implemented or tested end-to-end.
+   - *Mitigation*: Requires backend BR-01 (`POST /orders/{orderId}/payments`).
+
+7. **Blocker 2: Task T20 Blocked by Missing Customer Order History Endpoint (GAP-13)**
+   - *Impact*: Customer account order history page cannot fetch list of user orders.
+   - *Mitigation*: Requires backend BR-05 (`GET /orders`).

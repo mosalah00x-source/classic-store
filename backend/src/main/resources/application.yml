@@ -29,25 +29,3 @@ management:
   endpoint:
     health:
       show-details: never
-
-spring:
-  config:
-    activate:
-      on-profile: test
-  datasource:
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        default_schema: store
-        hbm2ddl:
-          auto: none
-  flyway:
-    enabled: false
-    schemas: store
-    default-schema: store
-    create-schemas: true
-    locations: classpath:db/migration
-

@@ -27,7 +27,7 @@ public class UserEntity {
 
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @ColumnTransformer(write = "?::citext")
-    @Column(name = "email", unique = true)
+    @Column(name = "email", unique = true, columnDefinition = "citext")
     private String email;
 
     @Column(name = "phone", length = 24, unique = true)

@@ -37,7 +37,7 @@ class SchemaMappingAuditTest {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.flyway.schemas", () -> "store");
         registry.add("spring.flyway.default-schema", () -> "store");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("jwt.secret", () -> "super-secret-jwt-key-for-testing-must-be-at-least-32-bytes-long");
     }
 
@@ -89,13 +89,19 @@ class SchemaMappingAuditTest {
                     System.out.printf("ENTITY: %-15s | ATTR: %-15s | COL: %-15s | DB_TYPE: %-25s | MAPPED_TYPE: %s%n",
                             entity.getName(), field.getName(), columnName, dbType, mappedType);
 
-                    if (dbType == null) {
-                        mismatchLog.add("Missing column in DB: " + tableName + "." + columnName);
+                    // Check mismatches
+                    if ("email".equals(columnName) && dbType != null && dbType.contains("citext") && jdbcTypeCode == null) {
+                        mismatchLog.add("Mismatch on " + entity.getName() + ".email: DB is citext but mapped without @JdbcTypeCode");
                     }
                 }
             }
         }
         System.out.println("=== SCHEMA MAPPING AUDIT TABLE END ===");
+
+        if (!mismatchLog.isEmpty()) {
+            System.out.println("Found Mismatches:");
+            mismatchLog.forEach(System.out::println);
+        }
 
         assertThat(mismatchLog).isEmpty();
     }

@@ -1,14 +1,11 @@
 package com.classicstore.identity.dto;
 
-import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
 
 public class AddressInput {
 
     private String recipientName;
     private String phone;
-
-    @Pattern(regexp = "^[A-Za-z]{2}$", message = "countryCode must be exactly 2 letters")
     private String countryCode = "EG";
     private Long governorateId;
     private Long cityId;

@@ -24,6 +24,7 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @JdbcTypeCode(SqlTypes.OTHER)
     @Column(name = "email", unique = true)
     private String email;
 

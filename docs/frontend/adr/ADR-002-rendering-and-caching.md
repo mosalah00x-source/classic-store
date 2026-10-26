@@ -12,7 +12,7 @@ E-commerce applications require high Core Web Vitals (LCP < 2.5s, CLS < 0.1) for
 ---
 
 ## Decision
-We adopt **Next.js 15 App Router** with TypeScript in strict mode, adhering to the following rules:
+We adopt **Next.js 16 App Router** (specifically `next@16.4.3`, upgraded from Next.js 15 following Next.js 15 end-of-life on 2026-10-21) with TypeScript in strict mode, adhering to the following rules:
 
 1. **Server Components by Default**:
    - Every layout and page component is a React Server Component (RSC) unless interactivity (event handlers, react state) requires client JS.

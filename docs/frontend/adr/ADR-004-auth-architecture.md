@@ -1,7 +1,7 @@
 # ADR-004: Authentication Architecture, Token Storage & BFF Strategy
 
-* **Status**: PROPOSED (Requires Owner Approval)
-* **Date**: 2026-03-30
+* **Status**: ACCEPTED (Approved by owner on 2026-10-25)
+* **Date**: 2026-10-25
 * **Scope**: JWT Token Handling, Session Security & Next.js Backend-For-Frontend (BFF)
 
 ---

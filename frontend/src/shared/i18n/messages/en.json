@@ -1,0 +1,27 @@
+{
+  "common": {
+    "cart": {
+      "itemsCount": "{count, plural, =0 {Cart is empty} one {1 item} other {# items}}"
+    }
+  },
+  "errors": {
+    "VALIDATION_ERROR": "Validation error. Please check input and try again.",
+    "EMAIL_OR_PHONE_REQUIRED": "Email or phone number is required.",
+    "INVALID_CREDENTIALS": "Invalid email or password.",
+    "INVALID_TOKEN": "Authentication session is invalid or expired.",
+    "FORBIDDEN": "You are not authorized to perform this operation.",
+    "NOT_FOUND": "Requested resource not found.",
+    "EMAIL_ALREADY_REGISTERED": "Email is already registered.",
+    "PHONE_ALREADY_REGISTERED": "Phone number is already registered.",
+    "BUSINESS_RULE_VIOLATION": "Operation failed due to a business rule violation.",
+    "NO_ELIGIBLE_WAREHOUSE": "No available warehouse can fulfill this request.",
+    "RATE_LIMITED": "Too many requests. Please try again later.",
+    "INTERNAL_ERROR": "An unexpected system error occurred. Please try again later.",
+    "UNKNOWN": "An unknown error occurred."
+  },
+  "home": {
+    "title": "Welcome to ClassicStore",
+    "description": "A unique shopping experience for premium products.",
+    "clientDemo": "Client component renders message:"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "common": {
+    "siteTitle": "Classic Store",
+    "siteDescription": "Egyptian e-commerce storefront for classic fashion and goods",
+    "cart": {
+      "itemsCount": "{count, plural, =0 {Empty cart} one {1 item} other {# items}}"
+    }
+  },
+  "errors": {
+    "VALIDATION_ERROR": "The submitted data is invalid",
+    "EMAIL_OR_PHONE_REQUIRED": "Email or phone number is required",
+    "INVALID_CREDENTIALS": "Invalid email/phone or password",
+    "INVALID_TOKEN": "Session expired or invalid token",
+    "FORBIDDEN": "You do not have permission to access this resource",
+    "NOT_FOUND": "The requested resource was not found",
+    "EMAIL_ALREADY_REGISTERED": "Email address is already registered",
+    "PHONE_ALREADY_REGISTERED": "Phone number is already registered",
+    "BUSINESS_RULE_VIOLATION": "The operation could not be completed due to a business rule constraint",
+    "NO_ELIGIBLE_WAREHOUSE": "No eligible warehouse is available to fulfill this order",
+    "RATE_LIMITED": "Too many requests. Please try again later",
+    "INTERNAL_ERROR": "An unexpected error occurred. Please try again later",
+    "UNKNOWN": "An unknown error occurred"
+  },
+  "home": {
+    "title": "Welcome to Classic Store",
+    "tagline": "Your primary destination for elegant e-commerce in Egypt"
+  }
+}

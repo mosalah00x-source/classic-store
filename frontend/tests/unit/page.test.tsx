@@ -9,7 +9,8 @@ vi.mock('next-intl/server', () => ({
     return (key: string) => {
       if (ns === 'home') {
         if (key === 'title') return 'أهلاً بك في كلاسيك ستور';
-        if (key === 'tagline') return 'وجهتك الأولى للتسوق الإلكتروني الأنيق في مصر';
+        if (key === 'tagline')
+          return 'وجهتك الأولى للتسوق الإلكتروني الأنيق في مصر';
       }
       return key;
     };
@@ -17,7 +18,9 @@ vi.mock('next-intl/server', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   useTranslations: () => (key: string) => key,
 }));
 

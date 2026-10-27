@@ -1,6 +1,6 @@
 export function pickLocalized<
-  T extends Record<string, any>,
-  K extends string
+  T extends Record<string, unknown>,
+  K extends string,
 >(entity: T | null | undefined, baseKey: K, locale: string): string {
   if (!entity) {
     if (process.env.NODE_ENV !== 'production') {

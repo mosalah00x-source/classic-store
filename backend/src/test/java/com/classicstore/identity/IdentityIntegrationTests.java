@@ -64,6 +64,9 @@ class IdentityIntegrationTests {
     private UserRepository userRepository;
 
     @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
     private JwtService jwtService;
 
     @Autowired
@@ -100,7 +103,22 @@ class IdentityIntegrationTests {
         ResponseEntity<UserResponse> response =
                 restTemplate.postForEntity("/api/v1/auth/register", request, UserResponse.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        System.out.println("DIAG registration status=" + response.getStatusCode()
+                + ", body=" + response.getBody());
+        assertThat(response.getStatusCode())
+                .as("Registration response body: %s", response.getBody())
+                .isEqualTo(HttpStatus.CREATED);
+
+        org.springframework.jdbc.core.JdbcTemplate jdbcTemplate =
+                new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        java.util.List<java.util.Map<String, Object>> byPhone = jdbcTemplate.queryForList(
+                "SELECT email, phone FROM store.users WHERE phone = ?", "+201012345678");
+        java.util.List<String> directCitext = jdbcTemplate.queryForList(
+                "SELECT email FROM store.users WHERE email = CAST('ali@example.com' AS store.citext)",
+                String.class);
+        System.out.println("DIAG by-phone rows=" + byPhone);
+        System.out.println("DIAG direct-citext rows=" + directCitext);
+
         assertThat(userRepository.findByEmailCi("ali@example.com"))
                 .isPresent()
                 .get()

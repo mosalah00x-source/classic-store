@@ -94,6 +94,22 @@ class IdentityIntegrationTests {
     }
 
     @Test
+    void caseInsensitiveEmailLookupFindsRegisteredUser() {
+        RegisterRequest request = new RegisterRequest(
+                "Ali", "Ali@Example.com", "+201012345678", "Password123!");
+        ResponseEntity<UserResponse> response =
+                restTemplate.postForEntity("/api/v1/auth/register", request, UserResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(userRepository.findByEmailCi("ali@example.com"))
+                .isPresent()
+                .get()
+                .extracting(UserEntity::getId)
+                .isEqualTo(response.getBody().getId());
+        assertThat(userRepository.existsByEmailCi("ALI@EXAMPLE.COM")).isTrue();
+    }
+
+    @Test
     void test2_registerWithRoleAdminCreatesCustomer() {
         // Sending raw JSON containing "role": "ADMIN"
         Map<String, Object> reqBody = Map.of(

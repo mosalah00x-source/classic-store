@@ -94,6 +94,32 @@ class IdentityIntegrationTests {
     }
 
     @Test
+    void caseInsensitiveEmailLookupFindsRegisteredUser() {
+        RegisterRequest request = new RegisterRequest(
+                "Ali", "Ali@Example.com", "+201012345678", "Password123!");
+        ResponseEntity<UserResponse> response =
+                restTemplate.postForEntity("/api/v1/auth/register", request, UserResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        assertThat(userRepository.findByEmailCi("ali@example.com"))
+                .isPresent()
+                .get()
+                .extracting(UserEntity::getId)
+                .isEqualTo(response.getBody().getId());
+        assertThat(userRepository.existsByEmailCi("ALI@EXAMPLE.COM")).isTrue();
+
+        RegisterRequest dupRequest = new RegisterRequest(
+                "Ali Dup", "ali@example.com", "+201012345679", "Password123!");
+        ResponseEntity<ApiErrorResponse> dupResponse =
+                restTemplate.postForEntity("/api/v1/auth/register", dupRequest, ApiErrorResponse.class);
+
+        assertThat(dupResponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(dupResponse.getBody()).isNotNull();
+        assertThat(dupResponse.getBody().code()).isEqualTo("EMAIL_ALREADY_REGISTERED");
+    }
+
+    @Test
     void test2_registerWithRoleAdminCreatesCustomer() {
         // Sending raw JSON containing "role": "ADMIN"
         Map<String, Object> reqBody = Map.of(
@@ -197,7 +223,7 @@ class IdentityIntegrationTests {
         assertThat(tamperedResp.getBody().code()).isEqualTo("INVALID_TOKEN");
 
         // 10. Refresh with expired refresh token returns 401 INVALID_TOKEN
-        UserEntity user = userRepository.findByEmailIgnoreCase("refresh@example.com").orElseThrow();
+        UserEntity user = userRepository.findByEmailCi("refresh@example.com").orElseThrow();
         String expiredRefreshToken = createExpiredToken(user.getId(), JwtService.TYPE_REFRESH);
         RefreshTokenRequest expiredReq = new RefreshTokenRequest(expiredRefreshToken);
         ResponseEntity<ApiErrorResponse> expiredResp = restTemplate.postForEntity("/api/v1/auth/refresh", expiredReq, ApiErrorResponse.class);
@@ -225,7 +251,7 @@ class IdentityIntegrationTests {
         restTemplate.postForEntity("/api/v1/auth/register", r1, UserResponse.class);
         AuthResponse loginAuth = restTemplate.postForEntity("/api/v1/auth/login", new LoginRequest("bearer@example.com", "Password123!"), AuthResponse.class).getBody();
 
-        UserEntity user = userRepository.findByEmailIgnoreCase("bearer@example.com").orElseThrow();
+        UserEntity user = userRepository.findByEmailCi("bearer@example.com").orElseThrow();
 
         // 14. Refresh token sent as Authorization: Bearer returns 401 INVALID_TOKEN
         HttpHeaders refreshBearerHeaders = new HttpHeaders();

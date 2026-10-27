@@ -10,12 +10,12 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
-    @Query(value = "SELECT * FROM store.users WHERE email OPERATOR(store.=) :email", nativeQuery = true)
+    @Query(value = "SELECT * FROM store.users WHERE email OPERATOR(store.=) CAST(:email AS store.citext)", nativeQuery = true)
     Optional<UserEntity> findByEmailCi(@Param("email") String email);
 
     Optional<UserEntity> findByPhone(String phone);
 
-    @Query(value = "SELECT EXISTS (SELECT 1 FROM store.users WHERE email OPERATOR(store.=) :email)", nativeQuery = true)
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM store.users WHERE email OPERATOR(store.=) CAST(:email AS store.citext))", nativeQuery = true)
     boolean existsByEmailCi(@Param("email") String email);
 
     boolean existsByPhone(String phone);

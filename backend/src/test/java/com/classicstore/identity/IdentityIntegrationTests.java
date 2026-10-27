@@ -64,6 +64,9 @@ class IdentityIntegrationTests {
     private UserRepository userRepository;
 
     @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
     private JwtService jwtService;
 
     @Autowired
@@ -95,6 +98,16 @@ class IdentityIntegrationTests {
 
     @Test
     void caseInsensitiveEmailLookupFindsRegisteredUser() {
+        org.springframework.jdbc.core.JdbcTemplate jdbcTemplate =
+                new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        java.util.List<String> extNamespace = jdbcTemplate.queryForList(
+                "SELECT extnamespace::regnamespace::text FROM pg_extension WHERE extname = 'citext'",
+                String.class);
+        java.util.List<java.util.Map<String, Object>> pgOperators = jdbcTemplate.queryForList(
+                "SELECT oprnamespace::regnamespace::text as oprns, oprname, oprleft::regtype::text as left_type, oprright::regtype::text as right_type FROM pg_operator WHERE oprname = '=' AND oprleft = 'store.citext'::regtype");
+        System.out.println("DIAG_CATALOG_EXT_NAMESPACE=" + extNamespace);
+        System.out.println("DIAG_CATALOG_PG_OPERATORS=" + pgOperators);
+
         RegisterRequest request = new RegisterRequest(
                 "Ali", "Ali@Example.com", "+201012345678", "Password123!");
         ResponseEntity<UserResponse> response =

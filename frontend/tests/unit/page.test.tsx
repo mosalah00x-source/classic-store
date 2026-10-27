@@ -5,6 +5,14 @@ import '@testing-library/jest-dom';
 
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
+  getMessages: vi.fn().mockResolvedValue({
+    common: {
+      cart: {
+        itemsCount:
+          '{count, plural, =0 {سلة التسوق فارغة} =1 {منتج واحد} =2 {منتجان} few {# منتجات} many {# منتجاً} other {# منتج}}',
+      },
+    },
+  }),
   getTranslations: vi.fn().mockImplementation(async (ns: string) => {
     return (key: string) => {
       if (ns === 'home') {

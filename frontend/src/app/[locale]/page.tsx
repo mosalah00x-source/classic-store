@@ -1,4 +1,8 @@
-import { setRequestLocale, getTranslations } from 'next-intl/server';
+import {
+  setRequestLocale,
+  getTranslations,
+  getMessages,
+} from 'next-intl/server';
 import { NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { routing, type Locale } from '@/shared/i18n/routing';
@@ -7,6 +11,14 @@ import { HomeClientStub } from '@/features/home/components/HomeClientStub';
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+type MessageTree = {
+  common?: {
+    cart?: {
+      itemsCount?: string;
+    };
+  };
+};
 
 export default async function HomePage({
   params,
@@ -22,12 +34,13 @@ export default async function HomePage({
   setRequestLocale(locale);
 
   const t = await getTranslations('home');
+  const allMessages = (await getMessages()) as MessageTree;
 
   // Pick ONLY the namespace subset for the client component payload optimization
   const messages = {
     common: {
       cart: {
-        itemsCount: (await getTranslations('common.cart'))('itemsCount'),
+        itemsCount: allMessages?.common?.cart?.itemsCount,
       },
     },
   };
